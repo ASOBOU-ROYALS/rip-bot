@@ -1,5 +1,5 @@
 from unicodedata import numeric
-import json
+from json import dumps as json_dumps
 from numbers import Number
 from typing import Dict, Callable
 
@@ -21,7 +21,7 @@ def ApplicationCommandHandler(req: object) -> object:
     return {
         "type": 4,
         "data": {
-            "content": f"Discord gave me this: {json.dumps(req)}",
+           "content": json_dumps(req["data"]),
         }
     }
 
