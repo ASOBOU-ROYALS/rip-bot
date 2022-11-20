@@ -17,7 +17,8 @@
         {
             "type": 11,
             "name": "image",
-            "description": "Proof of your friend's passing"
+            "description": "Proof of your friend's passing",
+            "required": true
         }
     ],
     "default_member_permissions": 2048,
