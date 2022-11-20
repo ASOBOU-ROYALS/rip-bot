@@ -4,9 +4,15 @@ from numbers import Number
 from typing import Dict, Callable
 
 from flask import Flask, json
+import os
+
 from flask import request
 
 app = Flask(__name__)
+
+from discord_interactions import verify_key_decorator
+
+RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
 
 def PingHandler(req: object) -> object:
     return {"type": 1}
@@ -25,6 +31,7 @@ InteractionsHandlers: Dict[Number, Callable[[object], object]] = {
 }
 
 @app.post("/interactions")
+@verify_key_decorator(RIP_BOT_PUBLIC_KEY)
 def interactions_post():
     request_body = request.get_json()
     interaction_type = request_body["type"]
