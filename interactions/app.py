@@ -13,20 +13,20 @@ app = Flask(__name__)
 from discord_interactions import verify_key_decorator
 
 RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
-DEATH_MESSAGE_TEMPLATE = """{caption} <@${dead_person_id}>"""
+DEATH_MESSAGE_TEMPLATE = """{caption} <@{dead_person_id}>"""
 
 def convert_options_to_map(options: List) -> Dict[str, Any]:
-    return {option.name: option.value for option in options}
+    return {option["name"]: option["value"] for option in options}
 
 def PingHandler(req: Any) -> Any:
     return {"type": 1}
 
 def ApplicationCommandHandler(req: Any) -> Any:
-    options = convert_options_to_map(req.data.options)
+    options = convert_options_to_map(req["data"]["options"])
     return {
         "type": 4,
         "data": {
-           "content": DEATH_MESSAGE_TEMPLATE.format(caption=options.caption, dead_person_id=options["dead-person"])
+           "content": DEATH_MESSAGE_TEMPLATE.format(caption=options["caption"], dead_person_id=options["dead-person"])
         }
     }
 
