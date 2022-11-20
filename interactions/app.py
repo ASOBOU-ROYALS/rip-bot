@@ -1,7 +1,7 @@
 from unicodedata import numeric
 from json import dumps as json_dumps
 from numbers import Number
-from typing import Dict, Callable
+from typing import Any, List, Dict, Callable
 
 from flask import Flask, json
 import os
@@ -13,19 +13,24 @@ app = Flask(__name__)
 from discord_interactions import verify_key_decorator
 
 RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
+DEATH_MESSAGE_TEMPLATE = """{caption} <@${dead_person_id}>"""
 
-def PingHandler(req: object) -> object:
+def convert_options_to_map(options: List) -> Dict[str, Any]:
+    return {option.name: option.value for option in options}
+
+def PingHandler(req: Any) -> Any:
     return {"type": 1}
 
-def ApplicationCommandHandler(req: object) -> object:
+def ApplicationCommandHandler(req: Any) -> Any:
+    options = convert_options_to_map(req.data.options)
     return {
         "type": 4,
         "data": {
-           "content": json_dumps(req["data"]),
+           "content": DEATH_MESSAGE_TEMPLATE.format(caption=options.caption, dead_person_id=options["dead-person"])
         }
     }
 
-InteractionsHandlers: Dict[Number, Callable[[object], object]] = {
+InteractionsHandlers: Dict[Number, Callable[[Any], Any]] = {
     1: PingHandler,
     2: ApplicationCommandHandler,
 }
