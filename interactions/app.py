@@ -27,13 +27,9 @@ def ApplicationCommandHandler(req: Any) -> Any:
         "type": 4,
         "data": {
             "content": DEATH_MESSAGE_TEMPLATE.format(dead_person_id=options["dead-person"]),
-            "embeds": [{
-                "title": options["caption"],
-                "image": {
-                    "url": req["data"]["resolved"]["attachments"][options["image"]]["url"],
-                    "proxy_url": req["data"]["resolved"]["attachments"][options["image"]]["proxy_url"],
-                },
-            }],
+            "attachments": [
+                req["data"]["resolved"]["attachments"][options["image"]],
+            ],
         }
     }
 
