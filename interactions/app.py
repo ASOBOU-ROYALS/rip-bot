@@ -1,30 +1,31 @@
 import json as python_json
+import os
 import sqlite3
 import time
 from numbers import Number
-from typing import Any, List, Dict, Callable
+from typing import Any, Callable, Dict, List, Tuple
 
-from flask import Flask, json
-import os
-
-from flask import request
+from flask import Flask, json, request
+from discord_interactions import verify_key_decorator
 
 app = Flask(__name__)
 
-from discord_interactions import verify_key_decorator
 
 RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
+SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
+
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!"""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
 
 def connect_to_database() -> sqlite3.Connection:
     return sqlite3.connect(DATABASE_PATH)
 
-def insert_death(
+
+def add_death_db(
     cursor: sqlite3.Cursor,
     server: str,
     dead_person: str,
@@ -47,11 +48,19 @@ def insert_death(
         },
     )
 
+
+def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
+    response = cursor.execute(SELECT_DEADPERSON_COUNT_SQL)
+    return response.fetchall()
+
+
 def convert_options_to_map(options: List) -> Dict[str, Any]:
     return {option["name"]: option["value"] for option in options}
 
+
 def PingHandler(req: Any) -> Any:
     return {"type": 1}
+
 
 def add_death(req: Any):
     options = convert_options_to_map(req["data"]["options"])
@@ -59,7 +68,7 @@ def add_death(req: Any):
 
     conn = connect_to_database()
     cursor = conn.cursor()
-    insert_death(
+    add_death_db(
         cursor,
         req["guild_id"],
         options["dead-person"],
@@ -87,8 +96,36 @@ def add_death(req: Any):
     }
 
 
+def tally_deaths(req: Any):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    result = get_tally_db(cursor)
+    conn.commit()
+    conn.close()
+
+    def sort_by_count(row):
+        return row[1]
+
+    result.sort(key=sort_by_count, reverse=True)
+
+    lines_of_text = ["**Deaths**"]
+    current_rank = 1
+    for dead_person, death_count in range(result):
+        lines_of_text.append(f"{current_rank}. <@{dead_person}> - {death_count}")
+        current_rank += 1
+
+    content = "\n".join(lines_of_text)
+
+    return {
+        "type": 4,
+        "data": {
+            "content": content,
+        }
+    }
+
 SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
+    "tally-deaths": tally_deaths,
 }
 
 def ApplicationCommandHandler(req: Any) -> Any:
