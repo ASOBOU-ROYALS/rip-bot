@@ -2,6 +2,7 @@ import json as python_json
 import os
 import sqlite3
 import time
+import traceback
 from numbers import Number
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -110,7 +111,7 @@ def tally_deaths(req: Any):
 
     lines_of_text = ["**Deaths**"]
     current_rank = 1
-    for dead_person, death_count in range(result):
+    for dead_person, death_count in result:
         lines_of_text.append(f"{current_rank}. <@{dead_person}> - {death_count}")
         current_rank += 1
 
@@ -146,6 +147,7 @@ def interactions_post():
         response = InteractionsHandlers[interaction_type](request_body)
         return json.jsonify(response)
     except Exception as e:
+        print(traceback.format_exc())
         return json.jsonify({
             "type": 4,
             "data": {
