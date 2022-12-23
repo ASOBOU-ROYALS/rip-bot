@@ -19,7 +19,7 @@ DATABASE_PATH = os.getenv("DATABASE_PATH")
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!"""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter)"""
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
 
 def connect_to_database() -> sqlite3.Connection:
     return sqlite3.connect(DATABASE_PATH)
@@ -32,6 +32,7 @@ def insert_death(
     attachment: any,
     timestamp: Number,
     reporter: str,
+    interaction_id: str,
 ):
     cursor.execute(
         INSERT_DEATH_SQL,
@@ -42,6 +43,7 @@ def insert_death(
             "attachment": attachment,
             "timestamp": timestamp,
             "reporter": reporter,
+            "interaction_id": interaction_id,
         },
     )
 
@@ -65,6 +67,7 @@ def ApplicationCommandHandler(req: Any) -> Any:
         python_json.dumps(resolved_attachment),
         int(time.time()),
         req["member"]["user"]["id"],
+        req["id"],
     )
     conn.commit()
     conn.close()
