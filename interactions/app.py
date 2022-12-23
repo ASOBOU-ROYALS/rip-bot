@@ -53,7 +53,7 @@ def convert_options_to_map(options: List) -> Dict[str, Any]:
 def PingHandler(req: Any) -> Any:
     return {"type": 1}
 
-def ApplicationCommandHandler(req: Any) -> Any:
+def add_death(req: Any):
     options = convert_options_to_map(req["data"]["options"])
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
 
@@ -85,6 +85,15 @@ def ApplicationCommandHandler(req: Any) -> Any:
             ],
         }
     }
+
+
+SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
+    "add-death": add_death,
+}
+
+def ApplicationCommandHandler(req: Any) -> Any:
+    command_name = req["data"]["name"]
+    return SlashCommandHandlers[command_name](req)
 
 InteractionsHandlers: Dict[Number, Callable[[Any], Any]] = {
     1: PingHandler,
