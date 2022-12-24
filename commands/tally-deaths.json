@@ -1,14 +1,7 @@
 {
     "name": "tally-deaths",
     "description": "Tallies the deaths in the database",
-    "options": [
-        {
-            "type": 6,
-            "name": "dead-person",
-            "description": "Your friend who has passed",
-            "required": false
-        }
-    ],
+    "options": [],
     "default_member_permissions": 2048,
     "dm_permission": false
 }
