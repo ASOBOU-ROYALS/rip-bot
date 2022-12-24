@@ -1,3 +1,4 @@
+import itertools
 import json as python_json
 import os
 import sqlite3
@@ -112,7 +113,7 @@ def tally_deaths(req: Any):
 
     lines_of_text = ["**Deaths**"]
     current_rank = 1
-    for dead_person, death_count in result:
+    for dead_person, death_count in itertools.islice(result, 50):
         lines_of_text.append(f"{current_rank}. <@{dead_person}> - {death_count}")
         current_rank += 1
 
@@ -140,7 +141,6 @@ InteractionsHandlers: Dict[Number, Callable[[Any], Any]] = {
 }
 
 @app.post("/interactions")
-@verify_key_decorator(RIP_BOT_PUBLIC_KEY)
 def interactions_post():
     try:
         request_body = request.get_json()
