@@ -18,7 +18,8 @@ DATABASE_PATH = os.getenv("DATABASE_PATH")
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 
-DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!"""
+DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died! {caption}"""
+DEATH_ATTACHMENT_TEMPLATE = """<@{dead_person_id}> died!"""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
 
@@ -85,10 +86,10 @@ def add_death(req: Any):
     return {
         "type": 4,
         "data": {
-            "content": DEATH_MESSAGE_TEMPLATE.format(dead_person_id=options["dead-person"]),
+            "content": DEATH_MESSAGE_TEMPLATE.format(dead_person_id=options["dead-person"], caption=options["caption"]),
             "embeds": [
                 {
-                    "title": options["caption"],
+                    "title": DEATH_ATTACHMENT_TEMPLATE.format(dead_person_id=options["dead-person"]),
                     "type": "image",
                     "image": resolved_attachment,
                 },
