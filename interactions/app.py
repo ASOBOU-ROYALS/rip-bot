@@ -90,7 +90,6 @@ def add_death(req: Any):
             "content": DEATH_MESSAGE_TEMPLATE.format(dead_person_id=options["dead-person"], caption=options["caption"]),
             "embeds": [
                 {
-                    "title": DEATH_ATTACHMENT_TEMPLATE.format(dead_person_id=options["dead-person"]),
                     "type": "image",
                     "image": resolved_attachment,
                 },
