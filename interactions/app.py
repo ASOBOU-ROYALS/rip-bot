@@ -144,6 +144,7 @@ InteractionsHandlers: Dict[Number, Callable[[Any], Any]] = {
 }
 
 @app.post("/interactions")
+@verify_key_decorator(RIP_BOT_PUBLIC_KEY)
 def interactions_post():
     try:
         request_body = request.get_json()
