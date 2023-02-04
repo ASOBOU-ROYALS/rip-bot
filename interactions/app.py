@@ -1,6 +1,7 @@
 import itertools
 import json as python_json
 import os
+import secrets
 import sqlite3
 import time
 import traceback
@@ -18,8 +19,11 @@ DATABASE_PATH = os.getenv("DATABASE_PATH")
 
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
+SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!
+Caption by <@{poster_id}>: \"{caption}\""""
+DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
@@ -55,6 +59,11 @@ def add_death_db(
 def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
     response = cursor.execute(SELECT_DEADPERSON_COUNT_SQL)
     return response.fetchall()
+
+
+def get_death_db(cursor: sqlite3.Cursor) -> Dict:
+    response = cursor.execute(SELECT_DEADPERSON_SQL)
+    return secrets.choice(response.fetchall())
 
 
 def convert_options_to_map(options: List) -> Dict[str, Any]:
@@ -126,6 +135,32 @@ def tally_deaths(req: Any):
         "type": 4,
         "data": {
             "content": content,
+        }
+    }
+
+
+def get_death(req: Any):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    result = get_death_db(cursor)
+    conn.commit()
+    conn.close()
+
+    return {
+        "type": 4,
+        "data": {
+            "content": DEATH_MESSAGE_RETRIEVE_TEMPLATE.format(
+                dead_person_id=result["dead_person"],
+                caption=result["caption"],
+                death_time=result["timestamp"],
+                poster_id=result["reporter"],
+            ),
+            "embeds": [
+                {
+                    "type": "image",
+                    "image": python_json.loads(result["attachment"]),
+                },
+            ],
         }
     }
 
