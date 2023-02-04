@@ -61,8 +61,8 @@ def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
     return response.fetchall()
 
 
-def get_death_db(cursor: sqlite3.Cursor) -> Dict:
-    response = cursor.execute(SELECT_DEADPERSON_SQL)
+def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
+    response = cursor.execute(SELECT_DEADPERSON_SQL, { dead_person: dead_person })
     return secrets.choice(response.fetchall())
 
 
@@ -140,9 +140,11 @@ def tally_deaths(req: Any):
 
 
 def get_death(req: Any):
+    options = convert_options_to_map(req["data"]["options"])
+
     conn = connect_to_database()
     cursor = conn.cursor()
-    result = get_death_db(cursor)
+    result = get_death_db(cursor, options["dead-person"])
     conn.commit()
     conn.close()
 
