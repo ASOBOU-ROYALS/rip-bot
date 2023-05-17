@@ -193,11 +193,10 @@ def interactions_post():
         response = InteractionsHandlers[interaction_type](request_body)
         return json.jsonify(response)
     except Exception as e:
-        print(traceback.format_exc())
         return json.jsonify({
             "type": 4,
             "data": {
-                "content": ERROR_MESSAGE
+                "content": ERROR_MESSAGE + "Technobabble: ||" + traceback.format_exc() + "||"
             }
         })
 
