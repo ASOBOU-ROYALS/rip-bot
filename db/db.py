@@ -6,6 +6,12 @@ from typing import Dict, List, Tuple
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
+UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
+
+
+def connect_to_database(path: str) -> sqlite3.Connection:
+    return sqlite3.connect(path)
+
 
 def add_death_db(
     cursor: sqlite3.Cursor,
@@ -39,5 +45,9 @@ def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
 
 
 def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
-    response = cursor.execute(SELECT_DEADPERSON_SQL, { dead_person: dead_person })
+    response = cursor.execute(SELECT_DEADPERSON_SQL, { "dead_person": dead_person })
     return secrets.choice(response.fetchall())
+
+
+def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str):
+    cursor.execute(UPDATE_DEATH_IMAGE_URL_SQL, { "rowid": rowid, "image_url": image_url })

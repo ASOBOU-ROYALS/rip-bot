@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Tuple
 from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 
-from db.db import add_death_db, get_tally_db, get_death_db
+from db.db import add_death_db, get_tally_db, get_death_db, connect_to_database
 
 app = Flask(__name__)
 
@@ -23,10 +23,6 @@ Caption by <@{poster_id}>: \"{caption}\""""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
-
-
-def connect_to_database() -> sqlite3.Connection:
-    return sqlite3.connect(DATABASE_PATH)
 
 
 def convert_options_to_map(options: List) -> Dict[str, Any]:
@@ -42,7 +38,7 @@ def add_death(req: Any):
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
     image_url = resolved_attachment["url"]
 
-    conn = connect_to_database()
+    conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
     add_death_db(
         cursor,
@@ -81,7 +77,7 @@ def add_death_beta(req: Any):
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
     image_url = resolved_attachment["url"]
 
-    conn = connect_to_database()
+    conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
     add_death_db(
         cursor,
@@ -115,7 +111,7 @@ def add_death_beta(req: Any):
     }
 
 def tally_deaths(req: Any):
-    conn = connect_to_database()
+    conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
     result = get_tally_db(cursor)
     conn.commit()
@@ -145,7 +141,7 @@ def tally_deaths(req: Any):
 def get_death(req: Any):
     options = convert_options_to_map(req["data"]["options"])
 
-    conn = connect_to_database()
+    conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
     result = get_death_db(cursor, options["dead-person"])
     conn.commit()
@@ -172,6 +168,7 @@ def get_death(req: Any):
 SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
     "add-death-beta": add_death_beta,
+    "get-death": get_death,
     "tally-deaths": tally_deaths,
 }
 
