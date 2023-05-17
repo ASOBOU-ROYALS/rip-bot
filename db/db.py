@@ -23,7 +23,7 @@ def add_death_db(
     timestamp: Number,
     reporter: str,
     interaction_id: str,
-):
+) -> int:
     cursor.execute(
         INSERT_DEATH_SQL,
         {
@@ -37,6 +37,8 @@ def add_death_db(
             "interaction_id": interaction_id,
         },
     )
+
+    return cursor.lastrowid
 
 
 def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:

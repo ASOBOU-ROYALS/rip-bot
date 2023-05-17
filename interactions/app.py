@@ -9,8 +9,10 @@ from typing import Any, Callable, Dict, List, Tuple
 
 from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
+from celery import group
 
 from db.db import add_death_db, get_tally_db, get_death_db, connect_to_database
+from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image
 
 app = Flask(__name__)
 
@@ -73,13 +75,14 @@ def add_death(req: Any):
 
 
 def add_death_beta(req: Any):
+    interaction_id = req["id"]
     options = convert_options_to_map(req["data"]["options"])
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
     image_url = resolved_attachment["url"]
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
-    add_death_db(
+    rowid = add_death_db(
         cursor,
         req["guild_id"],
         options["dead-person"],
@@ -93,6 +96,12 @@ def add_death_beta(req: Any):
     conn.commit()
     conn.close()
 
+    (download_image_and_upload_to_s3.s(image_url) | \
+        group(
+            update_database_with_image.s(rowid),
+            update_interaction_with_image.s(interaction_id),
+        )).delay()
+
     return {
         "type": 4,
         "data": {
@@ -100,13 +109,7 @@ def add_death_beta(req: Any):
                 dead_person_id=options["dead-person"],
                 caption=options["caption"],
                 poster_id=req["member"]["user"]["id"],
-            ),
-            "embeds": [
-                {
-                    "type": "image",
-                    "image": resolved_attachment,
-                },
-            ],
+            )
         }
     }
 

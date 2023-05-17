@@ -1,3 +1,6 @@
 discord-interactions
 Flask==2.2.2
 gunicorn
+celery
+requests
+boto3
