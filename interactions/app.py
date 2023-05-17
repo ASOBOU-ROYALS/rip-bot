@@ -115,6 +115,9 @@ def add_death(req: Any):
     }
 
 
+def add_death_beta(req: Any):
+    return add_death(req)
+
 def tally_deaths(req: Any):
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -172,6 +175,7 @@ def get_death(req: Any):
 
 SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
+    "add-death-beta": add_death_beta,
     "tally-deaths": tally_deaths,
 }
 
