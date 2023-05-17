@@ -1,0 +1,26 @@
+{
+    "name": "add-death-beta",
+    "description": "Adds a death to the database dangerously",
+    "options": [
+        {
+            "type": 6,
+            "name": "dead-person",
+            "description": "Your friend who has passed",
+            "required": true
+        },
+        {
+            "type": 3,
+            "name": "caption",
+            "description": "Write a caption for your friend's passing",
+            "required": true
+        },
+        {
+            "type": 11,
+            "name": "image",
+            "description": "Proof of your friend's passing",
+            "required": true
+        }
+    ],
+    "default_member_permissions": 2048,
+    "dm_permission": false
+}
