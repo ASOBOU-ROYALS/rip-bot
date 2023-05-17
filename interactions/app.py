@@ -116,7 +116,42 @@ def add_death(req: Any):
 
 
 def add_death_beta(req: Any):
-    return add_death(req)
+    options = convert_options_to_map(req["data"]["options"])
+    resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
+    image_url = resolved_attachment["url"]
+
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    add_death_db(
+        cursor,
+        req["guild_id"],
+        options["dead-person"],
+        options["caption"],
+        python_json.dumps(resolved_attachment),
+        image_url,
+        int(time.time()),
+        req["member"]["user"]["id"],
+        req["id"],
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "type": 4,
+        "data": {
+            "content": DEATH_MESSAGE_TEMPLATE.format(
+                dead_person_id=options["dead-person"],
+                caption=options["caption"],
+                poster_id=req["member"]["user"]["id"],
+            ),
+            "embeds": [
+                {
+                    "type": "image",
+                    "image": resolved_attachment,
+                },
+            ],
+        }
+    }
 
 def tally_deaths(req: Any):
     conn = connect_to_database()
