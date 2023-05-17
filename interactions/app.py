@@ -17,7 +17,7 @@ app = Flask(__name__)
 RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :timestamp, :reporter, :interaction_id)"""
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 
@@ -38,6 +38,7 @@ def add_death_db(
     dead_person: str,
     caption: str,
     attachment: any,
+    image_url: str,
     timestamp: Number,
     reporter: str,
     interaction_id: str,
@@ -49,6 +50,7 @@ def add_death_db(
             "dead_person": dead_person,
             "caption": caption,
             "attachment": attachment,
+            "image_url": image_url,
             "timestamp": timestamp,
             "reporter": reporter,
             "interaction_id": interaction_id,
@@ -77,6 +79,7 @@ def PingHandler(req: Any) -> Any:
 def add_death(req: Any):
     options = convert_options_to_map(req["data"]["options"])
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
+    image_url = resolved_attachment["url"]
 
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -86,6 +89,7 @@ def add_death(req: Any):
         options["dead-person"],
         options["caption"],
         python_json.dumps(resolved_attachment),
+        image_url,
         int(time.time()),
         req["member"]["user"]["id"],
         req["id"],
