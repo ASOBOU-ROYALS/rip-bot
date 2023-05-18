@@ -2,7 +2,7 @@ import os
 import requests
 import sqlite3
 import time
-import urllib.parse
+from urllib.parse import urlparse
 from typing import Tuple
 
 import boto3
@@ -23,7 +23,7 @@ AUTHORIZATION = os.getenv("AUTHORIZATION")
 def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     s3 = boto3.resource("s3")
 
-    image_name = os.path.basename(urllib.parse(source_url).path)
+    image_name = os.path.basename(urlparse(source_url).path)
     timestamp = time.time()
     file_name = f"{timestamp}-{image_name}"
     key = f"img/{file_name}"
