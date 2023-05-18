@@ -154,7 +154,7 @@ def get_death(req: Any):
         "type": 4,
         "data": {
             "content": DEATH_MESSAGE_RETRIEVE_TEMPLATE.format(
-                dead_person_id=result["dead_person"],
+                dead_person_id=options["dead-person"],
                 caption=result["caption"],
                 death_time=result["timestamp"],
                 poster_id=result["reporter"],
