@@ -33,7 +33,6 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
         Key=key,
         Body=response.content,
         ContentType=response.headers["content-type"],
-        ACL="public-read",
     )
     
     # b: bucket
