@@ -75,7 +75,7 @@ def add_death(req: Any):
 
 
 def add_death_beta(req: Any):
-    interaction_id = req["id"]
+    interaction_token = req["token"]
     options = convert_options_to_map(req["data"]["options"])
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
     image_url = resolved_attachment["url"]
@@ -99,7 +99,7 @@ def add_death_beta(req: Any):
     (download_image_and_upload_to_s3.s(image_url) | \
         group(
             update_database_with_image.s(rowid),
-            update_interaction_with_image.s(interaction_id),
+            update_interaction_with_image.s(interaction_token),
         )).delay()
 
     return {
