@@ -29,11 +29,13 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     file_name = f"{timestamp}-{image_name}"
     key = f"img/{file_name}"
 
+    content_type = response.headers["content-type"]
+
     response = requests.get(source_url)
     object = s3.Bucket(S3_BUCKET).put_object(
         Key=key,
         Body=response.content,
-        ContentType=response.headers["content-type"],
+        ContentType=content_type,
     )
     
     # b: bucket
@@ -43,11 +45,11 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     
     encoded_image = base64.b64encode(response.content).decode("utf-8")
 
-    return file_name, encoded_image, calculate_s3_url(S3_BUCKET, key)
+    return file_name, content_type, encoded_image, calculate_s3_url(S3_BUCKET, key)
 
 @app.task
 def update_database_with_image(new_file_info: Tuple[str, str, str], rowid: int):
-    _, _, new_url = new_file_info
+    _, _, _, new_url = new_file_info
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
@@ -61,7 +63,7 @@ def update_database_with_image(new_file_info: Tuple[str, str, str], rowid: int):
 # so file_name, image_content and new_url has to be first
 @app.task
 def update_interaction_with_image(new_file_info: Tuple[str, str, str], interaction_token: str):
-    file_name, image_content, _ = new_file_info
+    file_name, file_content_type, image_content, _ = new_file_info
 
     response = requests.patch(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
@@ -70,6 +72,7 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
                 {
                     "id": 0,
                     "filename": file_name,
+                    "content_type": file_content_type,
                 }
             ]
         },
