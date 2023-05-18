@@ -63,7 +63,7 @@ def update_database_with_image(new_file_info: Tuple[str, str, str], rowid: int):
 def update_interaction_with_image(new_file_info: Tuple[str, str, str], interaction_id: str):
     file_name, image_content, _ = new_file_info
 
-    requests.patch(
+    response = requests.patch(
         f"https://discord.com/api/v10/webhooks/${DISCORD_BOT_APPLICATION_ID}/${interaction_id}/messages/@original",
         json={
             "attachments": [
@@ -78,3 +78,5 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
             "files[0]": base64.b64decode(image_content.encode("utf-8")),
         },
     )
+    
+    response.raise_for_status()
