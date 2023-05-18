@@ -81,5 +81,7 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
             "files[0]": base64.b64decode(image_content.encode("utf-8")),
         },
     )
+
+    raise Exception(response.request.body)
     
     response.raise_for_status()
