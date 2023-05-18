@@ -29,9 +29,9 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     file_name = f"{timestamp}-{image_name}"
     key = f"img/{file_name}"
 
+    response = requests.get(source_url)
     content_type = response.headers["content-type"]
 
-    response = requests.get(source_url)
     object = s3.Bucket(S3_BUCKET).put_object(
         Key=key,
         Body=response.content,
