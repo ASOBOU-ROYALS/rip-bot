@@ -39,7 +39,7 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     # b: bucket
     # k: key
     def calculate_s3_url(b, k):
-        return f"https://${b}.s3.ca-central-1.amazonaws.com/${k}"
+        return f"https://{b}.s3.ca-central-1.amazonaws.com/{k}"
     
     encoded_image = base64.b64encode(response.content).decode("utf-8")
 
