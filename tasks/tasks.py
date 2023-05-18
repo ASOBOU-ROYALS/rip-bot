@@ -68,20 +68,12 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
     response = requests.patch(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
         json={
-            "attachments": [
-                {
-                    "id": 0,
-                    "filename": file_name,
-                    "content_type": file_content_type,
-                }
-            ]
+            "attachments": [{"id": 0}]
         },
         headers={"Authorization": AUTHORIZATION},
         files={
-            "files[0]": base64.b64decode(image_content.encode("utf-8")),
+            "files[0]": (file_name, base64.b64decode(image_content.encode("utf-8")), file_content_type),
         },
     )
-
-    raise Exception(response.request.body)
     
     response.raise_for_status()
