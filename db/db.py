@@ -48,7 +48,13 @@ def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
 
 def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
     response = cursor.execute(SELECT_DEADPERSON_SQL, { "dead_person": dead_person })
-    return secrets.choice(response.fetchall())
+    result = secrets.choice(response.fetchall())
+    return {
+        "caption": result[0],
+        "attachment": result[1],
+        "timestamp": result[2],
+        "reporter": result[3],
+    }
 
 
 def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str):
