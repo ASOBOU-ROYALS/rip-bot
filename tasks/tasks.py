@@ -1,4 +1,4 @@
-import binascii
+import base64
 import os
 import requests
 import sqlite3
@@ -41,7 +41,7 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     def calculate_s3_url(b, k):
         return f"https://${b}.s3.ca-central-1.amazonaws.com/${k}"
     
-    encoded_image = binascii.b2a_base64(response.content)
+    encoded_image = base64.b64encode(response.content).decode("utf-8")
 
     return file_name, encoded_image, calculate_s3_url(S3_BUCKET, key)
 
@@ -75,6 +75,6 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
         },
         headers={"Authorization": AUTHORIZATION},
         files={
-            "files[0]": binascii.a2b_base64(image_content),
+            "files[0]": base64.b64decode(image_content.encode("utf-8")),
         },
     )
