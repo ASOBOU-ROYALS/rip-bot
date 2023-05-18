@@ -64,7 +64,7 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
     file_name, image_content, _ = new_file_info
 
     response = requests.patch(
-        f"https://discord.com/api/v10/webhooks/${DISCORD_BOT_APPLICATION_ID}/${interaction_id}/messages/@original",
+        f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_id}/messages/@original",
         json={
             "attachments": [
                 {
