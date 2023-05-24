@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
+SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
 
@@ -45,6 +46,13 @@ def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
     response = cursor.execute(SELECT_DEADPERSON_COUNT_SQL)
     return response.fetchall()
 
+
+def get_tally_time_db(cursor: sqlite3.Cursor, start_time: int, end_time: int) -> List[Tuple[str, int]]:
+    response = cursor.execute(SELECT_DEADPERSON_COUNT_BY_TIME_SQL, {
+        "start_time": start_time,
+        "end_time": end_time,
+    })
+    return response.fetchall()
 
 def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
     response = cursor.execute(SELECT_DEADPERSON_SQL, { "dead_person": dead_person })
