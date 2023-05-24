@@ -79,7 +79,7 @@ def add_death_beta(req: Any):
 
 
 def tally_deaths(req: Any):
-    options = convert_options_to_map(req["data"]["options"])
+    options = convert_options_to_map(req["data"].get("options", {}))
     start_time, end_time = options.get("start-time", None), options.get("end-time", None)
 
     conn = connect_to_database(DATABASE_PATH)
