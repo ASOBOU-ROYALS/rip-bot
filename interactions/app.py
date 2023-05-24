@@ -85,20 +85,20 @@ def tally_deaths(req: Any):
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
 
-    try:
-        start_time_p, end_time_p = time.mktime(time.strptime(start_time, "%Y-%m-%d")), time.mktime(time.strptime(end_time, "%Y-%m-%d"))
-        result = get_tally_time_db(cursor, start_time_p, end_time_p)
-    except ValueError:
-        return {
-            "type": 4,
-            "data": {
-                "content": "Both start time and end time are required to be yyyy-mm-dd.",
+    if start_time and end_time:
+        try:
+            start_time_p, end_time_p = time.mktime(time.strptime(start_time, "%Y-%m-%d")), time.mktime(time.strptime(end_time, "%Y-%m-%d"))
+            result = get_tally_time_db(cursor, start_time_p, end_time_p)
+        except ValueError:
+            return {
+                "type": 4,
+                "data": {
+                    "content": "Both start time and end time are required to be yyyy-mm-dd.",
+                }
             }
-        }
-    
-    if not start_time and not end_time:
+    elif not start_time and not end_time:
         result = get_tally_db(cursor)
-    elif not result:
+    else:
         return {
             "type": 4,
             "data": {
