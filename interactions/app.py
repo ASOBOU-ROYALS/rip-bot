@@ -1,7 +1,6 @@
 import itertools
 import json as python_json
 import os
-import sqlite3
 import time
 import traceback
 from numbers import Number
@@ -11,7 +10,7 @@ from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 from celery import group
 
-from db.db import add_death_db, get_tally_db, get_death_db, connect_to_database
+from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, connect_to_database
 from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image
 
 app = Flask(__name__)
@@ -80,10 +79,33 @@ def add_death_beta(req: Any):
 
 
 def tally_deaths(req: Any):
+    options = convert_options_to_map(req["data"]["options"])
+    start_time, end_time = options.get("start-time", None), options.get("end-time", None)
+
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
-    result = get_tally_db(cursor)
-    conn.commit()
+
+    try:
+        start_time_p, end_time_p = time.mktime(time.strptime(start_time, "%Y-%m-%d")), time.mktime(time.strptime(end_time, "%Y-%m-%d"))
+        result = get_tally_time_db(cursor, start_time_p, end_time_p)
+    except ValueError:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Both start time and end time are required to be yyyy-mm-dd.",
+            }
+        }
+    
+    if not start_time and not end_time:
+        result = get_tally_db(cursor)
+    elif not result:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Both start time and end time are required to be yyyy-mm-dd.",
+            }
+        }
+
     conn.close()
 
     def sort_by_count(row):
@@ -91,7 +113,11 @@ def tally_deaths(req: Any):
 
     result.sort(key=sort_by_count, reverse=True)
 
-    lines_of_text = ["**Deaths**"]
+    header_text = "Deaths"
+    if start_time:
+        header_text += f" ({start_time} to {end_time})"
+
+    lines_of_text = [f"**{header_text}**"]
     current_rank = 1
     for dead_person, death_count in itertools.islice(result, 50):
         lines_of_text.append(f"{current_rank}. <@{dead_person}> - {death_count}")
