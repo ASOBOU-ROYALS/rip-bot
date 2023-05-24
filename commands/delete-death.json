@@ -1,0 +1,14 @@
+{
+    "name": "delete-death",
+    "description": "Deletes a specific death from the database",
+    "options": [
+        {
+            "type": 6,
+            "name": "message-id",
+            "description": "Message ID of the death to delete",
+            "required": true
+        }
+    ],
+    "default_member_permissions": 2048,
+    "dm_permission": false
+}

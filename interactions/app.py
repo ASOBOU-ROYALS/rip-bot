@@ -11,7 +11,7 @@ from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 from celery import group
 
-from db.db import add_death_db, get_tally_db, get_death_db, connect_to_database
+from db.db import add_death_db, delete_death_db, get_tally_db, get_death_db, connect_to_database
 from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image
 
 app = Flask(__name__)
@@ -79,6 +79,23 @@ def add_death_beta(req: Any):
     return add_death(req)
 
 
+def delete_death(req: Any):
+    options = convert_options_to_map(req["data"]["options"])
+
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+    delete_death_db(cursor, options["message-id"])
+    conn.commit()
+    conn.close()
+
+    return {
+        "type": 4,
+        "data": {
+            "content": "The entry was removed from the database."
+        }
+    }
+
+
 def tally_deaths(req: Any):
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
@@ -137,6 +154,7 @@ def get_death(req: Any):
 SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
     "add-death-beta": add_death_beta,
+    "delete-death": delete_death,
     "get-death": get_death,
     "tally-deaths": tally_deaths,
 }

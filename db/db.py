@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
+DELETE_DEATH_SQL = """DELETE FROM deaths WHERE interaction_id = :interaction_id"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
 
 
@@ -55,6 +56,10 @@ def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
         "timestamp": result[2],
         "reporter": result[3],
     }
+
+
+def delete_death_db(cursor: sqlite3.Cursor, interaction_id: str):
+    cursor.execute(DELETE_DEATH_SQL, { "interaction_id": interaction_id })
 
 
 def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str):
