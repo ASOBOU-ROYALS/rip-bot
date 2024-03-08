@@ -75,7 +75,33 @@ def add_death(req: Any):
 
 
 def add_death_beta(req: Any):
-    return add_death(req)
+    response = add_death(req)
+    original_interaction = python_json.dumps(req)
+    response["data"]["content"].append(f"\nOriginal interaction: ||{original_interaction}||")
+    response["data"]["components"] = [{
+        "type": 1,
+        "components": [
+            {
+                "type": 2,
+                "label": "Delete (testing)",
+                "style": 4,
+                "custom_id": "delete-death",
+            }
+        ]
+    }]
+
+    return response
+
+def delete_death(req: Any):
+    button_interaction = python_json.dumps(req)
+    original_message = req["message"]["content"]
+
+    return {
+        "type": 7,
+        "data": {
+            "content": f"DELETED {original_message}\nbutton_interaction: {button_interaction}"
+        }
+    }
 
 
 def tally_deaths(req: Any):
@@ -167,13 +193,22 @@ SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "tally-deaths": tally_deaths,
 }
 
+MessageComponentHandlers: Dict[str, Callable[[Any], Any]] = {
+    "delete-death": delete_death, 
+}
+
 def ApplicationCommandHandler(req: Any) -> Any:
     command_name = req["data"]["name"]
     return SlashCommandHandlers[command_name](req)
 
+def MessageComponentHandler(req: Any) -> Any:
+    custom_id = req["data"]["custom_id"]
+    return MessageComponentHandlers[custom_id](req)
+
 InteractionsHandlers: Dict[Number, Callable[[Any], Any]] = {
     1: PingHandler,
     2: ApplicationCommandHandler,
+    3: MessageComponentHandler,
 }
 
 @app.post("/interactions")
