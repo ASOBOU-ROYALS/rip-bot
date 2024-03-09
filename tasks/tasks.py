@@ -10,7 +10,7 @@ import boto3
 import requests
 from celery import Celery
 
-from db.db import connect_to_database, update_death_image_url_db
+from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db
 
 app = Celery("tasks", broker="amqp://localhost")
 
@@ -77,3 +77,21 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
     )
     
     response.raise_for_status()
+
+
+@app.task
+def update_database_with_message_id(rowid: str, interaction_token: str):
+    response = requests.get(
+        f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
+        headers={"Authorization": AUTHORIZATION},
+    )
+
+    response.raise_for_status()
+    message = response.json()
+
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    update_death_message_id_db(cursor, rowid, message["id"])
+    conn.commit()
+    conn.close()
