@@ -52,8 +52,6 @@ def add_death(req: Any):
         image_url,
         int(time.time()),
         req["member"]["user"]["id"],
-        req["id"],
-        req["token"],
     )
     conn.commit()
     conn.close()
