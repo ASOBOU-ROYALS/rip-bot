@@ -3,7 +3,7 @@ from numbers import Number
 import secrets
 from typing import Dict, List, Tuple
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id)"""
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :interaction_id, :interaction_token)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
@@ -24,6 +24,7 @@ def add_death_db(
     timestamp: Number,
     reporter: str,
     interaction_id: str,
+    interaction_token: str,
 ) -> int:
     cursor.execute(
         INSERT_DEATH_SQL,
@@ -36,6 +37,7 @@ def add_death_db(
             "timestamp": timestamp,
             "reporter": reporter,
             "interaction_id": interaction_id,
+            "interaction_token": interaction_token,
         },
     )
 
