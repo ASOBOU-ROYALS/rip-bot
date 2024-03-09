@@ -63,6 +63,8 @@ def add_death(req: Any):
             update_interaction_with_image.s(interaction_token),
         )).delay()
     
+    # technically the message takes time to exist in Discord
+    # so this delays the messsage ID fetching for a bit
     update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
 
     return {
