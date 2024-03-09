@@ -11,7 +11,7 @@ from discord_interactions import verify_key_decorator
 from celery import group
 
 from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, connect_to_database
-from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image
+from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id
 
 app = Flask(__name__)
 
@@ -46,6 +46,8 @@ def add_death(req: Any):
     rowid = add_death_db(
         cursor,
         req["guild_id"],
+        req["channel_id"],
+        "",
         options["dead-person"],
         options["caption"],
         python_json.dumps(resolved_attachment),
@@ -61,6 +63,8 @@ def add_death(req: Any):
             update_database_with_image.s(rowid),
             update_interaction_with_image.s(interaction_token),
         )).delay()
+    
+    update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
 
     return {
         "type": 4,

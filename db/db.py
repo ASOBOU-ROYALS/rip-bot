@@ -3,11 +3,12 @@ from numbers import Number
 import secrets
 from typing import Dict, List, Tuple
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter)"""
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :channel_id, :message_id, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
+UPDATE_DEATH_MESSAGE_ID_SQL = """UPDATE deaths SET message_id = :message_id WHERE rowid = :rowid"""
 
 
 def connect_to_database(path: str) -> sqlite3.Connection:
@@ -17,6 +18,8 @@ def connect_to_database(path: str) -> sqlite3.Connection:
 def add_death_db(
     cursor: sqlite3.Cursor,
     server: str,
+    channel_id: str,
+    message_id: str,
     dead_person: str,
     caption: str,
     attachment: any,
@@ -28,6 +31,8 @@ def add_death_db(
         INSERT_DEATH_SQL,
         {
             "server": server,
+            "channel_id": channel_id,
+            "message_id": message_id,
             "dead_person": dead_person,
             "caption": caption,
             "attachment": attachment,
@@ -65,3 +70,7 @@ def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
 
 def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str):
     cursor.execute(UPDATE_DEATH_IMAGE_URL_SQL, { "rowid": rowid, "image_url": image_url })
+
+
+def update_death_message_id_db(cursor: sqlite3.Cursor, rowid: int, message_id: str):
+    cursor.execute(UPDATE_DEATH_MESSAGE_ID_SQL, { "rowid": rowid, "message_id": message_id })
