@@ -20,8 +20,7 @@ RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!
-Caption by <@{poster_id}>: \"{caption}\"
-||ID: {interaction_id}||"""
+Caption by <@{poster_id}>: \"{caption}\""""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
@@ -73,7 +72,6 @@ def add_death(req: Any):
                 dead_person_id=options["dead-person"],
                 caption=options["caption"],
                 poster_id=req["member"]["user"]["id"],
-                interaction_id=req["id"],
             )
         }
     }
