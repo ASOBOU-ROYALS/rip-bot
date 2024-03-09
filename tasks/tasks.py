@@ -83,6 +83,7 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str], interacti
 def update_database_with_message_id(rowid: str, interaction_token: str):
     response = requests.get(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
+        headers={"Authorization": AUTHORIZATION},
     )
 
     response.raise_for_status()
