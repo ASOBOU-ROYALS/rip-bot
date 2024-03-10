@@ -6,7 +6,7 @@
             "type": 3,
             "name": "message-id",
             "description": "The message ID of the death to remove",
-            "required": false
+            "required": true
         }
     ],
     "default_member_permissions": 2048,
