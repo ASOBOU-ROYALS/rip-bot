@@ -4,8 +4,8 @@
     "options": [
         {
             "type": 3,
-            "name": "message-id",
-            "description": "The message ID of the death to remove",
+            "name": "death-message-link",
+            "description": "A link to the message which contains the death to remove",
             "required": true
         }
     ],
