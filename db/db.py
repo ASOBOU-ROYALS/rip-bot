@@ -10,6 +10,7 @@ SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM 
 SELECT_DEADPERSON_BY_MESSAGE_ID = """SELECT rowid, channel_id, dead_person, caption, reporter FROM deaths WHERE message_id = :message_id"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
 UPDATE_DEATH_MESSAGE_ID_SQL = """UPDATE deaths SET message_id = :message_id WHERE rowid = :rowid"""
+UPDATE_DEATH_IS_REMOVED_SQL = """UPDATE deaths SET is_removed = :is_removed WHERE rowid = :rowid"""
 
 
 def connect_to_database(path: str) -> sqlite3.Connection:
@@ -82,3 +83,7 @@ def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str
 
 def update_death_message_id_db(cursor: sqlite3.Cursor, rowid: int, message_id: str):
     cursor.execute(UPDATE_DEATH_MESSAGE_ID_SQL, { "rowid": rowid, "message_id": message_id })
+
+
+def update_death_is_counted_db(cursor: sqlite3.Cursor, rowid: int, is_removed: bool):
+    cursor.execute(UPDATE_DEATH_IS_REMOVED_SQL, { "rowid": rowid, "is_removed": is_removed })

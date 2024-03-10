@@ -12,7 +12,7 @@ from discord_interactions import verify_key_decorator
 from celery import group
 
 from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, get_death_by_message_id_db, connect_to_database
-from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message
+from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message, update_database_with_is_removed
 
 app = Flask(__name__)
 
@@ -131,7 +131,7 @@ def remove_death(req: Any):
             }
         }
     
-    _, channel_id, dead_person, caption, reporter = death
+    rowid, channel_id, dead_person, caption, reporter = death
 
     new_message = REMOVED_DEATH_MESSAGE_TEMPLATE.format(
         dead_person_id=dead_person,
@@ -139,8 +139,10 @@ def remove_death(req: Any):
         caption=caption,
         remover_id=req["member"]["user"]["id"],
     )
-
-    update_death_message.s(channel_id, message_id, new_message).apply_async()
+    
+    (update_database_with_is_removed.s(rowid, True) | \
+        update_death_message.si(channel_id, message_id, new_message)
+    ).delay()
 
     return {
         "type": 4,
