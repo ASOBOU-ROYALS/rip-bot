@@ -27,7 +27,7 @@ Caption by <@{poster_id}>: \"{caption}\"~~
 Removed by <@{remover_id}>."""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
-REMOVING_DEATH_IN_PROGRESS_TEMPLATE = """Removing death number {message_id} for <@{dead_person_id}>."""
+REMOVING_DEATH_IN_PROGRESS_TEMPLATE = """Removing death {death_message_link} for <@{dead_person_id}>."""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
 
@@ -145,7 +145,7 @@ def remove_death(req: Any):
         "type": 4,
         "data": {
             "content": REMOVING_DEATH_IN_PROGRESS_TEMPLATE.format(
-                message_id=message_id,
+                death_message_link=death_message_link,
                 dead_person_id=dead_person,
             ),
         },
