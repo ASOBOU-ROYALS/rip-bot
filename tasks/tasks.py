@@ -10,7 +10,7 @@ import boto3
 import requests
 from celery import Celery
 
-from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db
+from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db, delete_death_db
 
 app = Celery("tasks", broker="amqp://localhost")
 
@@ -95,3 +95,26 @@ def update_database_with_message_id(rowid: str, interaction_token: str):
     update_death_message_id_db(cursor, rowid, message["id"])
     conn.commit()
     conn.close()
+
+
+@app.task
+def delete_from_database(rowid: str):
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    delete_death_db(cursor, rowid)
+    conn.commit()
+    conn.close()
+
+
+@app.task
+def update_death_message(channel_id: str, message_id: str, new_content: str):
+    response = requests.patch(
+        f"https://discord.com/api/v10/channels/{channel_id}/messages/{message_id}",
+        json={
+            "content": new_content,
+        },
+        headers={"Authorization": AUTHORIZATION},
+    )
+
+    response.raise_for_status()

@@ -7,8 +7,10 @@ INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :channel_id, :message_
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
+SELECT_DEADPERSON_BY_MESSAGE_ID = """SELECT rowid, channel_id, dead_person, caption, reporter FROM deaths WHERE message_id = :message_id"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
 UPDATE_DEATH_MESSAGE_ID_SQL = """UPDATE deaths SET message_id = :message_id WHERE rowid = :rowid"""
+DELETE_BY_ROWID_SQL = """DELETE FROM deaths WHERE rowid = :rowid"""
 
 
 def connect_to_database(path: str) -> sqlite3.Connection:
@@ -68,9 +70,18 @@ def get_death_db(cursor: sqlite3.Cursor, dead_person: str) -> Dict:
     }
 
 
+def get_death_by_message_id_db(cursor: sqlite3.Cursor, message_id: str) -> Tuple:
+    response = cursor.execute(SELECT_DEADPERSON_BY_MESSAGE_ID, { "message_id": message_id })
+    return response.fetchone() # a message ID should only correspond to one death (fingers crossed)
+
+
 def update_death_image_url_db(cursor: sqlite3.Cursor, rowid: int, image_url: str):
     cursor.execute(UPDATE_DEATH_IMAGE_URL_SQL, { "rowid": rowid, "image_url": image_url })
 
 
 def update_death_message_id_db(cursor: sqlite3.Cursor, rowid: int, message_id: str):
     cursor.execute(UPDATE_DEATH_MESSAGE_ID_SQL, { "rowid": rowid, "message_id": message_id })
+
+
+def delete_death_db(cursor: sqlite3.Cursor, rowid: int):
+    cursor.execute(DELETE_BY_ROWID_SQL, { "rowid": rowid })

@@ -4,14 +4,15 @@ import os
 import time
 import traceback
 from numbers import Number
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Optional
+from urllib.parse import urlparse
 
 from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 from celery import group
 
-from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, connect_to_database
-from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id
+from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, get_death_by_message_id_db, connect_to_database
+from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message, delete_from_database
 
 app = Flask(__name__)
 
@@ -21,14 +22,33 @@ DATABASE_PATH = os.getenv("DATABASE_PATH")
 
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!
 Caption by <@{poster_id}>: \"{caption}\""""
+REMOVED_DEATH_MESSAGE_TEMPLATE = """~~<@{dead_person_id}> died!
+Caption by <@{poster_id}>: \"{caption}\"~~
+Removed by <@{remover_id}>."""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
+REMOVING_DEATH_IN_PROGRESS_TEMPLATE = """Removing death {death_message_link} for <@{dead_person_id}>."""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
 
 def convert_options_to_map(options: List) -> Dict[str, Any]:
     return {option["name"]: option["value"] for option in options}
 
+def parse_discord_message_url(url: str) -> Optional[Tuple[str, str, str]]:
+    parse_result = urlparse(url)
+    if parse_result.hostname != "discord.com":
+        return None
+
+    if not parse_result.path.startswith("/channel"):
+        return None
+    
+    path_parts = parse_result.path.split("/")
+    if len(path_parts) != 5:
+        # example URL: https://discord.com/channels/guild/channel/message
+        # parts are ("", "channels", "guild", "channel", "message")
+        return None
+    
+    return (path_parts[2], path_parts[3], path_parts[4])
 
 def PingHandler(req: Any) -> Any:
     return {"type": 1}
@@ -53,6 +73,7 @@ def add_death(req: Any):
         image_url,
         int(time.time()),
         req["member"]["user"]["id"],
+        False,
     )
     conn.commit()
     conn.close()
@@ -81,6 +102,57 @@ def add_death(req: Any):
 
 def add_death_beta(req: Any):
     return add_death(req)
+
+
+def remove_death(req: Any):
+    options = convert_options_to_map(req["data"]["options"])
+    death_message_link = options.get("death-message-link", None)
+
+    parsed_death_message_url = parse_discord_message_url(death_message_link)
+    if not parsed_death_message_url:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Invalid Discord message link.",
+            },
+        }
+
+    _, _, message_id = parsed_death_message_url
+
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    death = get_death_by_message_id_db(cursor, message_id)
+    if not death:
+        return {
+            "type": 4,
+            "data": {
+                "content": f"Death not found."
+            }
+        }
+    
+    rowid, channel_id, dead_person, caption, reporter = death
+
+    new_message = REMOVED_DEATH_MESSAGE_TEMPLATE.format(
+        dead_person_id=dead_person,
+        poster_id=reporter,
+        caption=caption,
+        remover_id=req["member"]["user"]["id"],
+    )
+    
+    (delete_from_database.s(rowid) | \
+        update_death_message.si(channel_id, message_id, new_message)
+    ).delay()
+
+    return {
+        "type": 4,
+        "data": {
+            "content": REMOVING_DEATH_IN_PROGRESS_TEMPLATE.format(
+                death_message_link=death_message_link,
+                dead_person_id=dead_person,
+            ),
+        },
+    }
 
 
 def tally_deaths(req: Any):
@@ -169,6 +241,7 @@ SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
     "add-death-beta": add_death_beta,
     "get-death": get_death,
+    "remove-death": remove_death,
     "tally-deaths": tally_deaths,
 }
 
