@@ -3,14 +3,14 @@ from numbers import Number
 import secrets
 from typing import Dict, List, Tuple
 
-INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :channel_id, :message_id, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter, :is_removed)"""
+INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :channel_id, :message_id, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter)"""
 SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
 SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 SELECT_DEADPERSON_BY_MESSAGE_ID = """SELECT rowid, channel_id, dead_person, caption, reporter FROM deaths WHERE message_id = :message_id"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
 UPDATE_DEATH_MESSAGE_ID_SQL = """UPDATE deaths SET message_id = :message_id WHERE rowid = :rowid"""
-UPDATE_DEATH_IS_REMOVED_SQL = """UPDATE deaths SET is_removed = :is_removed WHERE rowid = :rowid"""
+DELETE_BY_ROWID_SQL = """DELETE FROM deaths WHERE rowid = :rowid"""
 
 
 def connect_to_database(path: str) -> sqlite3.Connection:
@@ -28,7 +28,6 @@ def add_death_db(
     image_url: str,
     timestamp: Number,
     reporter: str,
-    is_removed: bool,
 ) -> int:
     cursor.execute(
         INSERT_DEATH_SQL,
@@ -42,7 +41,6 @@ def add_death_db(
             "image_url": image_url,
             "timestamp": timestamp,
             "reporter": reporter,
-            "is_removed": is_removed,
         },
     )
 
@@ -85,5 +83,5 @@ def update_death_message_id_db(cursor: sqlite3.Cursor, rowid: int, message_id: s
     cursor.execute(UPDATE_DEATH_MESSAGE_ID_SQL, { "rowid": rowid, "message_id": message_id })
 
 
-def update_death_is_counted_db(cursor: sqlite3.Cursor, rowid: int, is_removed: bool):
-    cursor.execute(UPDATE_DEATH_IS_REMOVED_SQL, { "rowid": rowid, "is_removed": is_removed })
+def delete_death_db(cursor: sqlite3.Cursor, rowid: int):
+    cursor.execute(DELETE_BY_ROWID_SQL, { "rowid": rowid })

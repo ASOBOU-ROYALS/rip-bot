@@ -10,7 +10,7 @@ import boto3
 import requests
 from celery import Celery
 
-from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db, update_death_is_counted_db
+from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db, delete_death_db
 
 app = Celery("tasks", broker="amqp://localhost")
 
@@ -98,11 +98,11 @@ def update_database_with_message_id(rowid: str, interaction_token: str):
 
 
 @app.task
-def update_database_with_is_removed(rowid: str, is_removed: bool):
+def delete_from_database(rowid: str):
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
 
-    update_death_is_counted_db(cursor, rowid, is_removed)
+    delete_death_db(cursor, rowid)
     conn.commit()
     conn.close()
 
