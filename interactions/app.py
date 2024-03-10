@@ -73,6 +73,7 @@ def add_death(req: Any):
         image_url,
         int(time.time()),
         req["member"]["user"]["id"],
+        False,
     )
     conn.commit()
     conn.close()
