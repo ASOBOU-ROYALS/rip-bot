@@ -23,7 +23,7 @@ DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!
 Caption by <@{poster_id}>: \"{caption}\""""
 REMOVED_DEATH_MESSAGE_TEMPLATE = """~~<@{dead_person_id}> died!
 Caption by <@{poster_id}>: \"{caption}\"~~
-Removed by <@{remover_id}."""
+Removed by <@{remover_id}>."""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
 REMOVING_DEATH_IN_PROGRESS_TEMPLATE = """Removing death number {message_id} for <@{dead_person_id}."""
