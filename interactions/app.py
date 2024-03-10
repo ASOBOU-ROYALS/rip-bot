@@ -4,7 +4,8 @@ import os
 import time
 import traceback
 from numbers import Number
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Optional
+from urllib.parse import urlparse
 
 from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
@@ -33,6 +34,21 @@ ERROR_MESSAGE = """rip-bot failed to process the command."""
 def convert_options_to_map(options: List) -> Dict[str, Any]:
     return {option["name"]: option["value"] for option in options}
 
+def parse_discord_message_url(url: str) -> Optional[Tuple[str, str, str]]:
+    parse_result = urlparse(url)
+    if parse_result.hostname != "discord.com":
+        return None
+
+    if not parse_result.path.startswith("/channel"):
+        return None
+    
+    path_parts = parse_result.path.split("/")
+    if len(path_parts) != 5:
+        # example URL: https://discord.com/channels/guild/channel/message
+        # parts are ("", "channels", "guild", "channel", "message")
+        return None
+    
+    return (path_parts[2], path_parts[3], path_parts[4])
 
 def PingHandler(req: Any) -> Any:
     return {"type": 1}
@@ -89,7 +105,18 @@ def add_death_beta(req: Any):
 
 def remove_death(req: Any):
     options = convert_options_to_map(req["data"]["options"])
-    message_id = options.get("message-id", None)
+    death_message_link = options.get("death-message-link", None)
+
+    parsed_death_message_url = parse_discord_message_url(death_message_link)
+    if not parsed_death_message_url:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Invalid Discord message link.",
+            },
+        }
+
+    _, _, message_id = parsed_death_message_url
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
