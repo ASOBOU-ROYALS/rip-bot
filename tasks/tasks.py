@@ -95,3 +95,15 @@ def update_database_with_message_id(rowid: str, interaction_token: str):
     update_death_message_id_db(cursor, rowid, message["id"])
     conn.commit()
     conn.close()
+
+@app.task
+def update_death_message(channel_id: str, message_id: str, new_content: str):
+    response = requests.patch(
+        f"https://discord.com/api/v10/channels/{channel_id}/messages/{message_id}",
+        json={
+            "content": new_content,
+        },
+        headers={"Authorization": AUTHORIZATION},
+    )
+
+    response.raise_for_status()

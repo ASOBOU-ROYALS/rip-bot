@@ -10,8 +10,8 @@ from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 from celery import group
 
-from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, connect_to_database
-from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id
+from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, get_death_by_message_id_db, connect_to_database
+from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message
 
 app = Flask(__name__)
 
@@ -21,8 +21,12 @@ DATABASE_PATH = os.getenv("DATABASE_PATH")
 
 DEATH_MESSAGE_TEMPLATE = """<@{dead_person_id}> died!
 Caption by <@{poster_id}>: \"{caption}\""""
+REMOVED_DEATH_MESSAGE_TEMPLATE = """~~<@{dead_person_id}> died!
+Caption by <@{poster_id}>: \"{caption}\"~~
+Removed by <@{remover_id}."""
 DEATH_MESSAGE_RETRIEVE_TEMPLATE = """<@{dead_person_id}> died on <t:{death_time}:f>!
 Caption by <@{poster_id}>: \"{caption}\""""
+REMOVING_DEATH_IN_PROGRESS_TEMPLATE = """Removing death number {message_id} for <@{dead_person_id}."""
 ERROR_MESSAGE = """rip-bot failed to process the command."""
 
 
@@ -81,6 +85,44 @@ def add_death(req: Any):
 
 def add_death_beta(req: Any):
     return add_death(req)
+
+
+def remove_death(req: Any):
+    options = convert_options_to_map(req["data"]["options"])
+    message_id = options.get("message-id", None)
+
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    death = get_death_by_message_id_db(cursor, message_id)
+    if not death:
+        return {
+            "type": 4,
+            "data": {
+                "content": f"Death not found."
+            }
+        }
+    
+    _, channel_id, dead_person, caption, reporter = death
+
+    new_message = REMOVED_DEATH_MESSAGE_TEMPLATE.format(
+        dead_person_id=dead_person,
+        poster_id=reporter,
+        caption=caption,
+        remover_id=req["member"]["user"]["id"],
+    )
+
+    update_death_message.s(channel_id, message_id, new_message).apply_async()
+
+    return {
+        "type": 4,
+        "data": {
+            "content": REMOVING_DEATH_IN_PROGRESS_TEMPLATE.format(
+                message_id=message_id,
+                dead_person_id=dead_person,
+            ),
+        },
+    }
 
 
 def tally_deaths(req: Any):
@@ -169,6 +211,7 @@ SlashCommandHandlers: Dict[str, Callable[[Any], Any]] = {
     "add-death": add_death,
     "add-death-beta": add_death_beta,
     "get-death": get_death,
+    "remove-death": remove_death,
     "tally-deaths": tally_deaths,
 }
 
