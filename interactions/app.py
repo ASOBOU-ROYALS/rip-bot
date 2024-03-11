@@ -116,7 +116,15 @@ def remove_death(req: Any):
             },
         }
 
-    _, _, message_id = parsed_death_message_url
+    guild_id, channel_id, message_id = parsed_death_message_url
+
+    if req["guild_id"] != guild_id:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Discord message link is not for this server."
+            }
+        }
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
@@ -130,7 +138,15 @@ def remove_death(req: Any):
             }
         }
     
-    rowid, channel_id, dead_person, caption, reporter = death
+    rowid, database_guild_id, channel_id, dead_person, caption, reporter = death
+
+    if req["guild_id"] != database_guild_id:
+        return {
+            "type": 4,
+            "data": {
+                "content": "Discord message link is not for this server."
+            }
+        }
 
     new_message = REMOVED_DEATH_MESSAGE_TEMPLATE.format(
         dead_person_id=dead_person,
