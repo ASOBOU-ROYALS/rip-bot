@@ -4,8 +4,8 @@ import secrets
 from typing import Dict, List, Tuple
 
 INSERT_DEATH_SQL = """INSERT INTO deaths VALUES (:server, :channel_id, :message_id, :dead_person, :caption, :attachment, :image_url, :timestamp, :reporter)"""
-SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths GROUP BY dead_person"""
-SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time GROUP BY dead_person"""
+SELECT_DEADPERSON_COUNT_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE server = :guild_id GROUP BY dead_person"""
+SELECT_DEADPERSON_COUNT_BY_TIME_SQL = """SELECT dead_person, COUNT(rowid) FROM deaths WHERE timestamp BETWEEN :start_time AND :end_time AND server = :guild_id GROUP BY dead_person"""
 SELECT_DEADPERSON_SQL = """SELECT caption, attachment, timestamp, reporter FROM deaths WHERE dead_person = :dead_person"""
 SELECT_DEADPERSON_BY_MESSAGE_ID = """SELECT rowid, server, channel_id, dead_person, caption, reporter FROM deaths WHERE message_id = :message_id"""
 UPDATE_DEATH_IMAGE_URL_SQL = """UPDATE deaths SET image_url = :image_url WHERE rowid = :rowid"""
@@ -47,15 +47,18 @@ def add_death_db(
     return cursor.lastrowid
 
 
-def get_tally_db(cursor: sqlite3.Cursor) -> List[Tuple[str, int]]:
-    response = cursor.execute(SELECT_DEADPERSON_COUNT_SQL)
+def get_tally_db(cursor: sqlite3.Cursor, guild_id: str) -> List[Tuple[str, int]]:
+    response = cursor.execute(SELECT_DEADPERSON_COUNT_SQL, {
+        "guild_id": guild_id,
+    })
     return response.fetchall()
 
 
-def get_tally_time_db(cursor: sqlite3.Cursor, start_time: int, end_time: int) -> List[Tuple[str, int]]:
+def get_tally_time_db(cursor: sqlite3.Cursor, guild_id: str, start_time: int, end_time: int) -> List[Tuple[str, int]]:
     response = cursor.execute(SELECT_DEADPERSON_COUNT_BY_TIME_SQL, {
         "start_time": start_time,
         "end_time": end_time,
+        "guild_id": guild_id,
     })
     return response.fetchall()
 

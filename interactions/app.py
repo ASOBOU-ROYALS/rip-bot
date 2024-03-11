@@ -182,7 +182,7 @@ def tally_deaths(req: Any):
     if start_time and end_time:
         try:
             start_time_p, end_time_p = time.mktime(time.strptime(start_time, "%Y-%m-%d")), time.mktime(time.strptime(end_time, "%Y-%m-%d"))
-            result = get_tally_time_db(cursor, start_time_p, end_time_p)
+            result = get_tally_time_db(cursor, req["guild_id"], start_time_p, end_time_p)
         except ValueError:
             return {
                 "type": 4,
@@ -191,7 +191,7 @@ def tally_deaths(req: Any):
                 }
             }
     elif not start_time and not end_time:
-        result = get_tally_db(cursor)
+        result = get_tally_db(cursor, req["guild_id"])
     else:
         return {
             "type": 4,
