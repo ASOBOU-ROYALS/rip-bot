@@ -130,6 +130,8 @@ def remove_death(req: Any):
     cursor = conn.cursor()
 
     death = get_death_by_message_id_db(cursor, message_id)
+    conn.close()
+
     if not death:
         return {
             "type": 4,
