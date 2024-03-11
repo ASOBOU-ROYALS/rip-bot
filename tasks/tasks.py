@@ -21,7 +21,7 @@ DISCORD_BOT_APPLICATION_ID = os.getenv("DISCORD_BOT_APPLICATION_ID")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
 
 @app.task
-def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
+def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str]:
     s3 = boto3.resource("s3")
 
     image_name = os.path.basename(urlparse(source_url).path)
@@ -48,7 +48,7 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str]:
     return file_name, content_type, encoded_image, calculate_s3_url(S3_BUCKET, key)
 
 @app.task
-def update_database_with_image(new_file_info: Tuple[str, str, str], rowid: int):
+def update_database_with_image(new_file_info: Tuple[str, str, str, str], rowid: int):
     _, _, _, new_url = new_file_info
 
     conn = connect_to_database(DATABASE_PATH)
@@ -62,7 +62,7 @@ def update_database_with_image(new_file_info: Tuple[str, str, str], rowid: int):
 # update_interaction_with_image is chained from download_image_and_upload_to_s3,
 # so file_name, image_content and new_url has to be first
 @app.task
-def update_interaction_with_image(new_file_info: Tuple[str, str, str], interaction_token: str):
+def update_interaction_with_image(new_file_info: Tuple[str, str, str, str], interaction_token: str):
     file_name, file_content_type, image_content, _ = new_file_info
 
     response = requests.patch(
