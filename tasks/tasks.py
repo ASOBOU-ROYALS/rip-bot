@@ -38,14 +38,10 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str
         ContentType=content_type,
     )
     
-    # b: bucket
-    # k: key
-    def calculate_s3_url(b, k):
-        return f"https://{b}.s3.ca-central-1.amazonaws.com/{k}"
-    
     encoded_image = base64.b64encode(response.content).decode("utf-8")
+    s3_url = f"https://{S3_BUCKET}.s3.ca-central-1.amazonaws.com/{key}"
 
-    return file_name, content_type, encoded_image, calculate_s3_url(S3_BUCKET, key)
+    return file_name, content_type, encoded_image, s3_url
 
 @app.task
 def update_database_with_image(new_file_info: Tuple[str, str, str, str], rowid: int):
