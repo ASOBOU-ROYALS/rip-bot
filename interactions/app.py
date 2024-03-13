@@ -87,6 +87,16 @@ def add_death(req: Any):
     # so this delays the messsage ID fetching for a bit
     update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
 
+    log_object = {
+        "event": "add_death",
+        "guild_id": req["guild_id"],
+        "actor": req["member"]["user"]["id"],
+        "channel": req["channel_id"],
+        "timestamp": time.time(),
+        "victim": options["dead-person"],
+    }
+    app.logger.info(python_json.dumps(log_object))
+
     return {
         "type": 4,
         "data": {
@@ -142,6 +152,16 @@ def remove_death(req: Any):
     (delete_from_database.s(rowid) | \
         update_death_message.si(channel_id, message_id, new_message)
     ).delay()
+
+    log_object = {
+        "event": "remove_death",
+        "guild_id": req["guild_id"],
+        "actor": req["member"]["user"]["id"],
+        "channel": req["channel_id"],
+        "timestamp": time.time(),
+        "message_id": message_id,
+    }
+    app.logger.info(python_json.dumps(log_object))
 
     return {
         "type": 4,
