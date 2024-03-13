@@ -3,6 +3,7 @@ import os
 import requests
 import sqlite3
 import time
+from numbers import Number
 from urllib.parse import urlparse
 from typing import Tuple
 
@@ -10,7 +11,7 @@ import boto3
 import requests
 from celery import Celery
 
-from db.db import connect_to_database, update_death_image_url_db, update_death_message_id_db, delete_death_db
+from db.db import connect_to_database, add_death_db, update_death_image_url_db, update_death_message_id_db, delete_death_db
 
 app = Celery("tasks", broker="amqp://localhost")
 
@@ -19,6 +20,39 @@ S3_BUCKET = os.getenv("S3_BUCKET")
 
 DISCORD_BOT_APPLICATION_ID = os.getenv("DISCORD_BOT_APPLICATION_ID")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
+
+@app.task
+def add_death_to_db(
+    server: str,
+    channel_id: str,
+    message_id: str,
+    dead_person: str,
+    caption: str,
+    attachment: str,
+    image_url: str,
+    timestamp: Number,
+    reporter: str,
+) -> int:
+    conn = connect_to_database(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    rowid = add_death_db(
+        cursor,
+        server,
+        channel_id,
+        message_id,
+        dead_person,
+        caption,
+        attachment,
+        image_url,
+        timestamp,
+        reporter,
+    )
+    conn.commit()
+    conn.close()
+
+    return rowid
+    
 
 @app.task
 def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str]:
