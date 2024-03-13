@@ -16,7 +16,7 @@ from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, g
 from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message, delete_from_database
 
 app = Flask(__name__)
-app.logger.setLevel("info")
+app.logger.setLevel(logging.INFO)
 
 RIP_BOT_PUBLIC_KEY = os.getenv("RIP_BOT_PUBLIC_KEY")
 DATABASE_PATH = os.getenv("DATABASE_PATH")
