@@ -15,8 +15,11 @@ from db.db import connect_to_database, add_death_db, update_death_image_url_db, 
 
 CELERY_BROKER = os.getenv("CELERY_BROKER")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+# just make sure it's defined, we don't need to pass it in below manually
+if not CELERY_RESULT_BACKEND:
+    raise ValueError("Missing CELERY_RESULT_BACKEND value.")
 
-app = Celery("tasks", broker=CELERY_BROKER, backend=CELERY_RESULT_BACKEND)
+app = Celery("tasks", broker=CELERY_BROKER)
 
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 S3_BUCKET = os.getenv("S3_BUCKET")
