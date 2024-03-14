@@ -13,13 +13,17 @@ from celery import Celery, Task
 
 from db.db import connect_to_database, add_death_db, update_death_image_url_db, update_death_message_id_db, delete_death_db
 
-app = Celery("tasks", broker="amqp://localhost")
+CELERY_BROKER = os.getenv("CELERY_BROKER")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+
+app = Celery("tasks", broker=CELERY_BROKER, backend=CELERY_RESULT_BACKEND)
 
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 S3_BUCKET = os.getenv("S3_BUCKET")
 
 DISCORD_BOT_APPLICATION_ID = os.getenv("DISCORD_BOT_APPLICATION_ID")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
+
 
 # https://stackoverflow.com/a/26546788
 # wraps Celery Tasks such that if a single Dict is passed as args input,
