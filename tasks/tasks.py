@@ -91,7 +91,7 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str
     encoded_image = base64.b64encode(response.content).decode("utf-8")
     s3_url = f"https://{S3_BUCKET}.s3.ca-central-1.amazonaws.com/{key}"
 
-    return (file_name, content_type, encoded_image, s3_url)
+    return file_name, content_type, encoded_image, s3_url
 
 # combines results from a Celery group into a Dict to passed to future Tasks as a single Dict
 @app.task
