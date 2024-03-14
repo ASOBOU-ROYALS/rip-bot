@@ -12,8 +12,9 @@ from flask import Flask, json, request
 from discord_interactions import verify_key_decorator
 from celery import group
 
+import tasks.tasks as app_tasks
 from db.db import add_death_db, get_tally_db, get_tally_time_db, get_death_db, get_death_by_message_id_db, connect_to_database
-from tasks.tasks import download_image_and_upload_to_s3, update_database_with_image, update_interaction_with_image, update_database_with_message_id, update_death_message, delete_from_database
+
 
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
@@ -78,15 +79,15 @@ def add_death(req: Any):
     conn.commit()
     conn.close()
 
-    (download_image_and_upload_to_s3.s(image_url) | \
+    (app_tasks.download_image_and_upload_to_s3.s(image_url) | \
         group(
-            update_database_with_image.s(rowid),
-            update_interaction_with_image.s(interaction_token),
+            app_tasks.update_database_with_image.s(rowid),
+            app_tasks.update_interaction_with_image.s(interaction_token),
         )).delay()
     
     # technically the message takes time to exist in Discord
     # so this delays the messsage ID fetching for a bit
-    update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
+    app_tasks.update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
 
     log_object = {
         "event": "add_death",
@@ -111,7 +112,55 @@ def add_death(req: Any):
 
 
 def add_death_beta(req: Any):
-    return add_death(req)
+    interaction_token = req["token"]
+    options = convert_options_to_map(req["data"]["options"])
+    resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
+    image_url = resolved_attachment["url"]
+
+    (
+        group(
+            app_tasks.add_death_to_db(
+                req["guild_id"],
+                req["channel_id"],
+                "",
+                options["dead-person"],
+                options["caption"],
+                python_json.dumps(resolved_attachment),
+                image_url,
+                int(time.time()),
+                req["member"]["user"]["id"],
+            ),
+            app_tasks.download_image_and_upload_to_s3.s(image_url),
+        ) |
+        app_tasks.gather_results.s("rowid", "image", interaction_token=interaction_token) |
+        group(
+            app_tasks.update_database_with_image.s(),
+            app_tasks.update_interaction_with_image.s(),
+            # technically the message takes time to exist in Discord
+            # so this delays the messsage ID fetching for a bit
+            app_tasks.update_database_with_message_id.s(countdown=0.2)
+        )).delay()
+    
+    log_object = {
+        "event": "add_death",
+        "guild_id": req["guild_id"],
+        "actor": req["member"]["user"]["id"],
+        "channel": req["channel_id"],
+        "timestamp": time.time(),
+        "victim": options["dead-person"],
+    }
+    app.logger.info(python_json.dumps(log_object))
+
+    return {
+        "type": 4,
+        "data": {
+            "content": DEATH_MESSAGE_TEMPLATE.format(
+                dead_person_id=options["dead-person"],
+                caption=options["caption"],
+                poster_id=req["member"]["user"]["id"],
+            )
+        }
+    }
 
 
 def remove_death(req: Any):
@@ -168,8 +217,8 @@ def remove_death(req: Any):
         remover_id=req["member"]["user"]["id"],
     )
     
-    (delete_from_database.s(rowid) | \
-        update_death_message.si(channel_id, message_id, new_message)
+    (app_tasks.delete_from_database.s(rowid) | \
+        app_tasks.update_death_message.si(channel_id, message_id, new_message)
     ).delay()
 
     log_object = {

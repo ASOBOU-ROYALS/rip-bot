@@ -5,11 +5,11 @@ import sqlite3
 import time
 from numbers import Number
 from urllib.parse import urlparse
-from typing import Tuple
+from typing import Any, Dict, List, Tuple
 
 import boto3
 import requests
-from celery import Celery
+from celery import Celery, Task
 
 from db.db import connect_to_database, add_death_db, update_death_image_url_db, update_death_message_id_db, delete_death_db
 
@@ -20,6 +20,22 @@ S3_BUCKET = os.getenv("S3_BUCKET")
 
 DISCORD_BOT_APPLICATION_ID = os.getenv("DISCORD_BOT_APPLICATION_ID")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
+
+# https://stackoverflow.com/a/26546788
+# wraps Celery Tasks such that if a single Dict is passed as args input,
+# the Dict's keypairs are moved to the kwargs of the argument
+# this allows the Task to have a more precise signature than just "input: Dict"
+class KWArgsTask(Task):
+    abstract = True    
+
+    # args comes from the previous Task
+    # kwargs comes from any arguments that are set
+    def __call__(self, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], dict):
+            kwargs.update(args[0])
+            args = ()
+        return super(KWArgsTask, self).__call__(*args, **kwargs)
+
 
 @app.task
 def add_death_to_db(
@@ -75,11 +91,23 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str
     encoded_image = base64.b64encode(response.content).decode("utf-8")
     s3_url = f"https://{S3_BUCKET}.s3.ca-central-1.amazonaws.com/{key}"
 
-    return file_name, content_type, encoded_image, s3_url
+    return (file_name, content_type, encoded_image, s3_url)
 
+# combines results from a Celery group into a Dict to passed to future Tasks as a single Dict
 @app.task
-def update_database_with_image(new_file_info: Tuple[str, str, str, str], rowid: int):
-    _, _, _, new_url = new_file_info
+def gather_results(results: List[Any], *args, **kwargs) -> Dict:
+    if len(results) != len(args):
+        raise ValueError("args has incorrect number of key names.")
+    
+    if any(not isinstance(arg, str) for arg in args):
+        raise ValueError("args expects only string arguments.")
+    
+    return dict(zip(args, results)).update(kwargs)
+
+
+@app.task(base=KWArgsTask)
+def update_database_with_image(image: Tuple[str, str, str, str], rowid: int):
+    _, _, _, new_url = image
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
@@ -91,9 +119,9 @@ def update_database_with_image(new_file_info: Tuple[str, str, str, str], rowid: 
 
 # update_interaction_with_image is chained from download_image_and_upload_to_s3,
 # so file_name, image_content and new_url has to be first
-@app.task
-def update_interaction_with_image(new_file_info: Tuple[str, str, str, str], interaction_token: str):
-    file_name, file_content_type, image_content, _ = new_file_info
+@app.task(base=KWArgsTask)
+def update_interaction_with_image(image: Tuple[str, str, str, str], interaction_token: str):
+    file_name, file_content_type, image_content, _ = image
 
     response = requests.patch(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
@@ -109,7 +137,7 @@ def update_interaction_with_image(new_file_info: Tuple[str, str, str, str], inte
     response.raise_for_status()
 
 
-@app.task
+@app.task(base=KWArgsTask)
 def update_database_with_message_id(rowid: str, interaction_token: str):
     response = requests.get(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
