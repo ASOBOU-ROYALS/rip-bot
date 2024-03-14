@@ -119,7 +119,7 @@ def add_death_beta(req: Any):
 
     (
         group(
-            app_tasks.add_death_to_db(
+            app_tasks.add_death_to_db.s(
                 req["guild_id"],
                 req["channel_id"],
                 "",
