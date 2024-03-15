@@ -119,6 +119,7 @@ def update_database_with_image(input: Dict):
 
 # update_interaction_with_image is chained from download_image_and_upload_to_s3,
 # so file_name, image_content and new_url has to be first
+@app.task
 def update_interaction_with_image(input: Dict):
     image: Tuple[str, str, str, str] = input.get("image", None)
 
