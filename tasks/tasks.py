@@ -122,8 +122,9 @@ def update_database_with_image(input: Dict):
 @app.task
 def update_interaction_with_image(input: Dict):
     image: Tuple[str, str, str, str] = input.get("image", None)
+    interaction_token: str = input.get("interaction_token", None)
 
-    if not image:
+    if not image or not interaction_token:
         raise ValueError("missing image")
     
     file_name, file_content_type, image_content, _ = image
