@@ -62,61 +62,6 @@ def add_death(req: Any):
     resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
     image_url = resolved_attachment["url"]
 
-    conn = connect_to_database(DATABASE_PATH)
-    cursor = conn.cursor()
-    rowid = add_death_db(
-        cursor,
-        req["guild_id"],
-        req["channel_id"],
-        "",
-        options["dead-person"],
-        options["caption"],
-        python_json.dumps(resolved_attachment),
-        image_url,
-        int(time.time()),
-        req["member"]["user"]["id"],
-    )
-    conn.commit()
-    conn.close()
-
-    (app_tasks.download_image_and_upload_to_s3.s(image_url) | \
-        group(
-            app_tasks.update_database_with_image.s(rowid),
-            app_tasks.update_interaction_with_image.s(interaction_token),
-        )).delay()
-    
-    # technically the message takes time to exist in Discord
-    # so this delays the messsage ID fetching for a bit
-    app_tasks.update_database_with_message_id.s(rowid, interaction_token).apply_async(countdown=0.2)
-
-    log_object = {
-        "event": "add_death",
-        "guild_id": req["guild_id"],
-        "actor": req["member"]["user"]["id"],
-        "channel": req["channel_id"],
-        "timestamp": time.time(),
-        "victim": options["dead-person"],
-    }
-    app.logger.info(python_json.dumps(log_object))
-
-    return {
-        "type": 4,
-        "data": {
-            "content": DEATH_MESSAGE_TEMPLATE.format(
-                dead_person_id=options["dead-person"],
-                caption=options["caption"],
-                poster_id=req["member"]["user"]["id"],
-            )
-        }
-    }
-
-
-def add_death_beta(req: Any):
-    interaction_token = req["token"]
-    options = convert_options_to_map(req["data"]["options"])
-    resolved_attachment = req["data"]["resolved"]["attachments"][options["image"]]
-    image_url = resolved_attachment["url"]
-
     (
         group(
             app_tasks.add_death_to_db.s(
@@ -164,6 +109,10 @@ def add_death_beta(req: Any):
             )
         }
     }
+
+
+def add_death_beta(req: Any):
+    return add_death(req)
 
 
 def remove_death(req: Any):
