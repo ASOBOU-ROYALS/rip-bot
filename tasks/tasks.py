@@ -144,6 +144,7 @@ def update_interaction_with_image(input: Dict):
     response.raise_for_status()
 
 
+@app.task
 def update_database_with_message_id(input: Dict):
     rowid: int = input.get("rowid", None)
     interaction_token: str = input.get("interaction_token", None)
