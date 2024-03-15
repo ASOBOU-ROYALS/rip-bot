@@ -138,7 +138,10 @@ def add_death_beta(req: Any):
             app_tasks.update_interaction_with_image.s(),
             # technically the message takes time to exist in Discord
             # so this delays the messsage ID fetching for a bit
-            app_tasks.update_database_with_message_id.s(countdown=0.2)
+            # TODO: readd the countdown/delay once I figure out how
+            # for now this should be fine since we wait are downloding and uploading a whole image
+            # in the first step, which serves as the delay
+            app_tasks.update_database_with_message_id.s()
         )).delay()
     
     log_object = {
