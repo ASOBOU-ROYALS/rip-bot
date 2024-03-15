@@ -28,22 +28,6 @@ DISCORD_BOT_APPLICATION_ID = os.getenv("DISCORD_BOT_APPLICATION_ID")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
 
 
-# https://stackoverflow.com/a/26546788
-# wraps Celery Tasks such that if a single Dict is passed as args input,
-# the Dict's keypairs are moved to the kwargs of the argument
-# this allows the Task to have a more precise signature than just "input: Dict"
-class KWArgsTask(Task):
-    abstract = True    
-
-    # args comes from the previous Task
-    # kwargs comes from any arguments that are set
-    def __call__(self, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], dict):
-            kwargs.update(args[0])
-            args = ()
-        return super(KWArgsTask, self).__call__(*args, **kwargs)
-
-
 @app.task
 def add_death_to_db(
     server: str,
@@ -74,11 +58,11 @@ def add_death_to_db(
     conn.commit()
     conn.close()
 
-    return rowid
+    return { "rowid": rowid }
     
 
 @app.task
-def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str]:
+def download_image_and_upload_to_s3(source_url: str) -> Dict:
     s3 = boto3.resource("s3")
 
     image_name = os.path.basename(urlparse(source_url).path)
@@ -98,23 +82,32 @@ def download_image_and_upload_to_s3(source_url: str) -> Tuple[str, str, str, str
     encoded_image = base64.b64encode(response.content).decode("utf-8")
     s3_url = f"https://{S3_BUCKET}.s3.ca-central-1.amazonaws.com/{key}"
 
-    return file_name, content_type, encoded_image, s3_url
+    return { "image": (file_name, content_type, encoded_image, s3_url) }
 
 # combines results from a Celery group into a Dict to passed to future Tasks as a single Dict
 @app.task
-def gather_results(results: List[Any], *args, **kwargs) -> Dict:
-    if len(results) != len(args):
-        raise ValueError("args has incorrect number of key names.")
+def gather_results(results: List[Dict], **kwargs) -> Dict:
+    for task_result in results:
+        for key in task_result.keys():
+            if key in kwargs:
+                raise ValueError(f"duplicate key encountered: {key}")
+            
+            kwargs[key] = task_result[key]
     
-    if any(not isinstance(arg, str) for arg in args):
-        raise ValueError("args expects only string arguments.")
-    
-    return dict(zip(args, results)).update(kwargs)
+    return kwargs
 
 
-@app.task(base=KWArgsTask)
-def update_database_with_image(image: Tuple[str, str, str, str], rowid: int):
+@app.task
+def update_database_with_image(input: Dict):
+    rowid: int = input.get("rowid", None)
+    image = input.get("image", None)
+
+    if not rowid or not image:
+        raise ValueError("missing argument")
+    
     _, _, _, new_url = image
+    if not new_url:
+        raise ValueError("missing image field")
 
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
@@ -126,9 +119,15 @@ def update_database_with_image(image: Tuple[str, str, str, str], rowid: int):
 
 # update_interaction_with_image is chained from download_image_and_upload_to_s3,
 # so file_name, image_content and new_url has to be first
-@app.task(base=KWArgsTask)
-def update_interaction_with_image(image: Tuple[str, str, str, str], interaction_token: str):
+def update_interaction_with_image(input: Dict):
+    image: Tuple[str, str, str, str] = input.get("image", None)
+
+    if not image:
+        raise ValueError("missing image")
+    
     file_name, file_content_type, image_content, _ = image
+    if not file_name or not file_content_type or not image_content:
+        raise ValueError("missing image field")
 
     response = requests.patch(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
@@ -144,8 +143,13 @@ def update_interaction_with_image(image: Tuple[str, str, str, str], interaction_
     response.raise_for_status()
 
 
-@app.task(base=KWArgsTask)
-def update_database_with_message_id(rowid: str, interaction_token: str):
+def update_database_with_message_id(input: Dict):
+    rowid: int = input.get("rowid", None)
+    interaction_token: str = input.get("interaction_token", None)
+
+    if not rowid or not interaction_token:
+        raise ValueError("missing argument")
+
     response = requests.get(
         f"https://discord.com/api/v10/webhooks/{DISCORD_BOT_APPLICATION_ID}/{interaction_token}/messages/@original",
         headers={"Authorization": AUTHORIZATION},

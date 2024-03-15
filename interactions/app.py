@@ -132,7 +132,7 @@ def add_death_beta(req: Any):
             ),
             app_tasks.download_image_and_upload_to_s3.s(image_url),
         ) |
-        app_tasks.gather_results.s("rowid", "image", interaction_token=interaction_token) |
+        app_tasks.gather_results.s(interaction_token=interaction_token) |
         group(
             app_tasks.update_database_with_image.s(),
             app_tasks.update_interaction_with_image.s(),
