@@ -255,7 +255,6 @@ def get_death(req: Any):
     conn = connect_to_database(DATABASE_PATH)
     cursor = conn.cursor()
     result = get_death_db(cursor, req["guild_id"], options["dead-person"])
-    conn.commit()
     conn.close()
 
     return {
