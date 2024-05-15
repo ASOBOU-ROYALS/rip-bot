@@ -1,7 +1,6 @@
 import base64
 import os
 import requests
-import sqlite3
 import time
 from numbers import Number
 from urllib.parse import urlparse
@@ -119,7 +118,7 @@ def update_database_with_image(input: Dict):
 
 # update_interaction_with_image is chained from download_image_and_upload_to_s3,
 # so file_name, image_content and new_url has to be first
-@app.task
+@app.task(autroretry_for=(requests.exceptions.HTTPError,), default_retry_delay=5)
 def update_interaction_with_image(input: Dict):
     image: Tuple[str, str, str, str] = input.get("image", None)
     interaction_token: str = input.get("interaction_token", None)
@@ -141,11 +140,11 @@ def update_interaction_with_image(input: Dict):
             "files[0]": (file_name, base64.b64decode(image_content.encode("utf-8")), file_content_type),
         },
     )
-    
+
     response.raise_for_status()
 
 
-@app.task
+@app.task(autroretry_for=(requests.exceptions.HTTPError,), default_retry_delay=5)
 def update_database_with_message_id(input: Dict):
     rowid: int = input.get("rowid", None)
     interaction_token: str = input.get("interaction_token", None)
@@ -179,7 +178,7 @@ def delete_from_database(rowid: str):
     conn.close()
 
 
-@app.task
+@app.task(autroretry_for=(requests.exceptions.HTTPError,), default_retry_delay=5)
 def update_death_message(channel_id: str, message_id: str, new_content: str):
     response = requests.patch(
         f"https://discord.com/api/v10/channels/{channel_id}/messages/{message_id}",
